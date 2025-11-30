@@ -1,6 +1,13 @@
 import { Button } from "./components/ui/button";
+import { Toaster } from "react-hot-toast";
+import { RouterProvider } from "react-router-dom";
+import router from "./routes";
 
 export default function App() {
-  return <div className="text-3xl font-bold underline">Hello Vite + React!
-  <Button>clicl me</Button></div>
+  return (
+    <>
+      <Toaster />
+      <RouterProvider router={router} />
+    </>
+  );
 }
