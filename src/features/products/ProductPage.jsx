@@ -328,10 +328,18 @@ export default function ProductPage() {
                             {product.description || "-"}
                           </div>
                         </TableCell>
-                        <TableCell className="w-[150px]">{product.categoryName || "-"}</TableCell>
+                        <TableCell className="w-[150px]">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            {product.categoryName || "-"}
+                          </span>
+                        </TableCell>
                         <TableCell className="w-[150px]">{product.supplierName || "-"}</TableCell>
                         <TableCell className="w-20">{product.unit}</TableCell>
-                        <TableCell className="w-[120px]">{formatCurrency(product.price)}</TableCell>
+                        <TableCell className="w-[120px]">
+                          <span className={product.price > 10000000 ? "font-semibold text-red-600" : "font-semibold"}>
+                            {formatCurrency(product.price)}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right space-x-2 w-[160px]">
                           <Button
                             variant="ghost"

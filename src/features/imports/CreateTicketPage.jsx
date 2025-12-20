@@ -442,14 +442,14 @@ export default function CreateTicketPage() {
                   <div className="overflow-x-auto flex-1">
                     <table className="w-full">
                       <thead className="bg-muted/50 text-xs uppercase font-semibold">
-                        <tr>
-                          <th className="px-4 py-3 text-left">Sản phẩm</th>
-                          <th className="px-4 py-3 text-left">Số lượng</th>
-                          {mode === "import" && (
-                            <th className="px-4 py-3 text-left">Giá nhập</th>
-                          )}
-                          <th className="px-4 py-3 text-right">Thao tác</th>
-                        </tr>
+                       <tr>
+    <th className="px-4 py-3 text-left w-[45%]">Sản phẩm</th>
+    <th className="px-4 py-3 text-left w-[15%]">Số lượng</th>
+    {mode === "import" && (
+      <th className="px-4 py-3 text-left w-[20%]">Giá nhập</th>
+    )}
+    <th className="px-4 py-3 text-right w-[15%]">Thao tác</th>
+  </tr>
                       </thead>
                       <tbody className="divide-y text-sm">
                         {transactionList.map((item) => (
@@ -463,21 +463,23 @@ export default function CreateTicketPage() {
                                     className="h-10 w-10 object-cover rounded"
                                   />
                                 )}
-                                <div>
-                                  <p className="font-semibold">{item.productName}</p>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold line-clamp-2" title={item.productName}>
+                                    {item.productName}
+                                  </p>
                                   <p className="text-xs text-muted-foreground">
                                     Đơn vị: {item.unit}
                                   </p>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 w-[15%]">
                               <span className="font-bold text-base">
                                 {item.quantity} {item.unit}
                               </span>
                             </td>
                             {mode === "import" && (
-                              <td className="px-4 py-3">
+                              <td className="px-4 py-3 w-[15%]">
                                 <span className="font-semibold">
                                   {formatCurrency(item.price)}
                                 </span>
