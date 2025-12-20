@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { stockService, warehouseService, productService } from "@/services";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,10 +20,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Database, AlertTriangle, TrendingUp, Package } from "lucide-react";
+import { Database, AlertTriangle, TrendingUp, Package, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { permissions } from "@/lib/permissions";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function StockPage() {
   const { user } = useAuth();
@@ -38,6 +47,11 @@ export default function StockPage() {
     productId: "",
     quantity: 0,
   });
+
+  // Pagination & Search states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchStocks();
@@ -112,15 +126,37 @@ export default function StockPage() {
     });
   };
 
-  const filteredStocks = selectedWarehouse
-    ? stocks.filter((s) => s.warehouseId === selectedWarehouse)
-    : stocks;
-
   const getStockStatus = (quantity) => {
-    if (quantity === 0) return { label: "Hết hàng", variant: "destructive" };
-    if (quantity < 10) return { label: "Sắp hết", variant: "outline" };
-    return { label: "Còn hàng", variant: "default" };
+    if (quantity === 0) return { label: "Hết hàng", variant: "destructive", color: "text-red-600" };
+    if (quantity < 10) return { label: "Sắp hết", variant: "default", color: "text-orange-500", bgColor: "bg-orange-100" };
+    return { label: "Còn hàng", variant: "default", color: "text-green-600", bgColor: "bg-green-100" };
   };
+
+  // Client-side filtering and pagination
+  const filteredStocks = useMemo(() => {
+    return stocks.filter((stock) => {
+      const matchWarehouse = selectedWarehouse
+        ? stock.warehouseId === selectedWarehouse
+        : true;
+      const matchSearch = stock.productName
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      return matchWarehouse && matchSearch;
+    });
+  }, [stocks, selectedWarehouse, searchQuery]);
+
+  const paginatedStocks = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredStocks.slice(startIndex, endIndex);
+  }, [filteredStocks, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredStocks.length / itemsPerPage);
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedWarehouse]);
 
   const totalProducts = filteredStocks.length;
   const totalQuantity = filteredStocks.reduce((sum, s) => sum + s.quantity, 0);
@@ -235,58 +271,181 @@ export default function StockPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm kiếm sản phẩm..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          ) : filteredStocks.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Database className="mx-auto h-12 w-12 mb-2 opacity-50" />
-              <p>Chưa có tồn kho nào</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Kho</TableHead>
-                  <TableHead>Sản phẩm</TableHead>
-                  <TableHead className="text-right">Số lượng</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStocks.map((stock, index) => {
-                  const status = getStockStatus(stock.quantity);
-                  return (
-                    <TableRow
-                      key={`${stock.warehouseId}-${stock.productId}-${index}`}
-                    >
-                      <TableCell className="font-medium">
-                        {stock.warehouseName}
-                      </TableCell>
-                      <TableCell>{stock.productName}</TableCell>
-                      <TableCell className="text-right">
-                        <span
-                          className={`font-semibold ${
-                            stock.quantity === 0
-                              ? "text-red-600"
-                              : stock.quantity < 10
-                              ? "text-yellow-600"
-                              : "text-green-600"
-                          }`}
-                        >
-                          {stock.quantity}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={status.variant}>{status.label}</Badge>
-                      </TableCell>
+
+            {/* Table */}
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : filteredStocks.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Database className="mx-auto h-12 w-12 mb-2 opacity-50" />
+                {searchQuery || selectedWarehouse ? (
+                  <p>Không tìm thấy tồn kho nào phù hợp</p>
+                ) : (
+                  <p>Chưa có tồn kho nào</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Kho</TableHead>
+                      <TableHead>Sản phẩm</TableHead>
+                      <TableHead className="text-right">Số lượng</TableHead>
+                      <TableHead>Trạng thái</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedStocks.map((stock, index) => {
+                      const status = getStockStatus(stock.quantity);
+                      return (
+                        <TableRow
+                          key={`${stock.warehouseId}-${stock.productId}-${index}`}
+                        >
+                          <TableCell className="font-medium">
+                            {stock.warehouseName}
+                          </TableCell>
+                          <TableCell>{stock.productName}</TableCell>
+                          <TableCell className="text-right">
+                            <span className={`font-semibold ${status.color}`}>
+                              {stock.quantity}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={status.variant}
+                              className={status.bgColor ? `${status.bgColor} ${status.color} hover:${status.bgColor}` : ""}
+                            >
+                              {status.label}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-2 py-4">
+                  <div className="text-sm text-muted-foreground">
+                    Hiển thị{" "}
+                    <span className="font-medium">
+                      {(currentPage - 1) * itemsPerPage + 1}
+                    </span>{" "}
+                    đến{" "}
+                    <span className="font-medium">
+                      {Math.min(currentPage * itemsPerPage, filteredStocks.length)}
+                    </span>{" "}
+                    trong tổng số{" "}
+                    <span className="font-medium">{filteredStocks.length}</span> mục
+                  </div>
+
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() =>
+                            currentPage > 1 && setCurrentPage(currentPage - 1)
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+
+                      {/* First page */}
+                      {totalPages > 0 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(1)}
+                            isActive={currentPage === 1}
+                            className="cursor-pointer"
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      {/* Ellipsis before current page */}
+                      {currentPage > 3 && totalPages > 5 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Pages around current page */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((page) => {
+                          if (totalPages <= 5) return page > 1 && page < totalPages;
+                          if (page === 1 || page === totalPages) return false;
+                          return Math.abs(currentPage - page) <= 1;
+                        })
+                        .map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+
+                      {/* Ellipsis after current page */}
+                      {currentPage < totalPages - 2 && totalPages > 5 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Last page */}
+                      {totalPages > 1 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(totalPages)}
+                            isActive={currentPage === totalPages}
+                            className="cursor-pointer"
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() =>
+                            currentPage < totalPages &&
+                            setCurrentPage(currentPage + 1)
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 

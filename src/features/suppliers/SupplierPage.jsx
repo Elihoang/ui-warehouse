@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supplierService } from "@/services";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,8 +19,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Search } from "lucide-react";
 import toast from "react-hot-toast";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 import { permissions } from "@/lib/permissions";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +46,11 @@ export default function SupplierPage() {
     phone: "",
     address: "",
   });
+
+  // Pagination & Search states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (permissions.canViewSuppliers(user?.role)) {
@@ -107,6 +121,31 @@ export default function SupplierPage() {
     setFormData({ supplierName: "", phone: "", address: "" });
   };
 
+  // Client-side filtering and pagination
+  const filteredSuppliers = useMemo(() => {
+    return suppliers.filter((supplier) => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        supplier.supplierName?.toLowerCase().includes(searchLower) ||
+        supplier.phone?.toLowerCase().includes(searchLower) ||
+        supplier.address?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [suppliers, searchQuery]);
+
+  const paginatedSuppliers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredSuppliers.slice(startIndex, endIndex);
+  }, [filteredSuppliers, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   if (!permissions.canViewSuppliers(user?.role)) {
     return (
       <div className="text-center py-20 text-muted-foreground">
@@ -141,59 +180,185 @@ export default function SupplierPage() {
           <CardTitle>Danh sách nhà cung cấp</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin h-8 w-8 border-b-2 border-primary rounded-full" />
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm kiếm nhà cung cấp..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          ) : suppliers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Building2 className="mx-auto h-12 w-12 mb-2 opacity-50" />
-              Chưa có nhà cung cấp nào
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tên nhà cung cấp</TableHead>
-                  <TableHead>Số điện thoại</TableHead>
-                  <TableHead>Địa chỉ</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {suppliers.map((supplier) => (
-                  <TableRow key={supplier.supplierId}>
-                    <TableCell className="font-medium">
-                      {supplier.supplierName}
-                    </TableCell>
-                    <TableCell>{supplier.phone || "-"}</TableCell>
-                    <TableCell>{supplier.address || "-"}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      {permissions.canEditSupplier(user?.role) && (
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          onClick={() => handleEdit(supplier)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+
+            {/* Table */}
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin h-8 w-8 border-b-2 border-primary rounded-full" />
+              </div>
+            ) : filteredSuppliers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Building2 className="mx-auto h-12 w-12 mb-2 opacity-50" />
+                {searchQuery ? (
+                  <p>Không tìm thấy nhà cung cấp nào phù hợp</p>
+                ) : (
+                  <p>Chưa có nhà cung cấp nào</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tên nhà cung cấp</TableHead>
+                      <TableHead>Số điện thoại</TableHead>
+                      <TableHead>Địa chỉ</TableHead>
+                      <TableHead className="text-right">Thao tác</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedSuppliers.map((supplier) => (
+                      <TableRow key={supplier.supplierId}>
+                        <TableCell className="font-medium">
+                          {supplier.supplierName}
+                        </TableCell>
+                        <TableCell>{supplier.phone || "-"}</TableCell>
+                        <TableCell>{supplier.address || "-"}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          {permissions.canEditSupplier(user?.role) && (
+                            <Button
+                              variant="outline"
+                              size="icon-sm"
+                              onClick={() => handleEdit(supplier)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          {permissions.canDeleteSupplier(user?.role) && (
+                            <Button
+                              variant="destructive"
+                              size="icon-sm"
+                              onClick={() => handleDelete(supplier.supplierId)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-2 py-4">
+                  <div className="text-sm text-muted-foreground">
+                    Hiển thị{" "}
+                    <span className="font-medium">
+                      {(currentPage - 1) * itemsPerPage + 1}
+                    </span>{" "}
+                    đến{" "}
+                    <span className="font-medium">
+                      {Math.min(currentPage * itemsPerPage, filteredSuppliers.length)}
+                    </span>{" "}
+                    trong tổng số{" "}
+                    <span className="font-medium">{filteredSuppliers.length}</span> mục
+                  </div>
+
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() =>
+                            currentPage > 1 && setCurrentPage(currentPage - 1)
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+
+                      {/* First page */}
+                      {totalPages > 0 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(1)}
+                            isActive={currentPage === 1}
+                            className="cursor-pointer"
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
                       )}
 
-                      {permissions.canDeleteSupplier(user?.role) && (
-                        <Button
-                          variant="destructive"
-                          size="icon-sm"
-                          onClick={() => handleDelete(supplier.supplierId)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      {/* Ellipsis before current page */}
+                      {currentPage > 3 && totalPages > 5 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+
+                      {/* Pages around current page */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((page) => {
+                          if (totalPages <= 5) return page > 1 && page < totalPages;
+                          if (page === 1 || page === totalPages) return false;
+                          return Math.abs(currentPage - page) <= 1;
+                        })
+                        .map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+
+                      {/* Ellipsis after current page */}
+                      {currentPage < totalPages - 2 && totalPages > 5 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Last page */}
+                      {totalPages > 1 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(totalPages)}
+                            isActive={currentPage === totalPages}
+                            className="cursor-pointer"
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() =>
+                            currentPage < totalPages &&
+                            setCurrentPage(currentPage + 1)
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 
