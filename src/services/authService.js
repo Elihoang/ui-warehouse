@@ -1,9 +1,9 @@
 import api from './api';
 
 class AuthService {
-  async login(userName, password) {
+  async login(loginIdentifier, password) {
     const response = await api.post('/auth/login', {
-      userName,
+      loginIdentifier, // Username hoặc Email
       password,
     });
     

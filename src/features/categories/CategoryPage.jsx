@@ -45,7 +45,7 @@ export default function CategoryPage() {
 
   // Pagination & Filter states
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {

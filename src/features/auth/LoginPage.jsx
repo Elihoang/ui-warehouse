@@ -13,7 +13,7 @@ import { Warehouse, Lock, User } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
-  const [userName, setUserName] = useState("");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -22,14 +22,14 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!userName || !password) {
+    if (!loginIdentifier || !password) {
       toast.error("Vui lòng nhập đầy đủ thông tin");
       return;
     }
 
     setLoading(true);
     try {
-      await login(userName, password);
+      await login(loginIdentifier, password);
       toast.success("Đăng nhập thành công!");
       navigate("/");
     } catch (error) {
@@ -54,14 +54,14 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tên đăng nhập</label>
+              <label className="text-sm font-medium">Tên đăng nhập hoặc Email</label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Nhập tên đăng nhập"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Nhập username hoặc email"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
