@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { categoryService } from "@/services";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,11 +19,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Search } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { permissions } from "@/lib/permissions";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function CategoryPage() {
   const { user } = useAuth();
@@ -33,6 +42,11 @@ export default function CategoryPage() {
   const [open, setOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({ categoryName: "" });
+
+  // Pagination & Filter states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (permissions.canViewCategories(user?.role)) {
@@ -99,6 +113,29 @@ export default function CategoryPage() {
     setFormData({ categoryName: "" });
   };
 
+  // Client-side filtering and pagination
+  const filteredCategories = useMemo(() => {
+    return categories.filter((category) => {
+      const matchSearch = category.categoryName
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      return matchSearch;
+    });
+  }, [categories, searchQuery]);
+
+  const paginatedCategories = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredCategories.slice(startIndex, endIndex);
+  }, [filteredCategories, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, itemsPerPage]);
+
   // ❌ Không có quyền xem
   if (!permissions.canViewCategories(user?.role)) {
     return (
@@ -128,63 +165,194 @@ export default function CategoryPage() {
         )}
       </div>
 
-      {/* Table */}
+      {/* Search & Filter */}
       <Card>
         <CardHeader>
           <CardTitle>Danh sách danh mục</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin h-8 w-8 border-b-2 border-primary rounded-full" />
+          <div className="space-y-4">
+            {/* Search and Items per page */}
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm kiếm danh mục..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground whitespace-nowrap">
+                  Hiển thị:
+                </Label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="h-10 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
-          ) : categories.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Package className="mx-auto h-12 w-12 mb-2 opacity-50" />
-              Chưa có danh mục nào
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tên danh mục</TableHead>
-                  <TableHead>Số sản phẩm</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories.map((category) => (
-                  <TableRow key={category.categoryId}>
-                    <TableCell className="font-medium">
-                      {category.categoryName}
-                    </TableCell>
-                    <TableCell>{category.productCount}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      {permissions.canEditCategory(user?.role) && (
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          onClick={() => handleEdit(category)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+
+            {/* Table */}
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin h-8 w-8 border-b-2 border-primary rounded-full" />
+              </div>
+            ) : filteredCategories.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="mx-auto h-12 w-12 mb-2 opacity-50" />
+                {searchQuery ? (
+                  <p>Không tìm thấy danh mục nào phù hợp với "{searchQuery}"</p>
+                ) : (
+                  <p>Chưa có danh mục nào</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tên danh mục</TableHead>
+                      <TableHead>Số sản phẩm</TableHead>
+                      <TableHead className="text-right">Thao tác</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedCategories.map((category) => (
+                      <TableRow key={category.categoryId}>
+                        <TableCell className="font-medium">
+                          {category.categoryName}
+                        </TableCell>
+                        <TableCell>{category.productCount}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          {permissions.canEditCategory(user?.role) && (
+                            <Button
+                              variant="outline"
+                              size="icon-sm"
+                              onClick={() => handleEdit(category)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          {permissions.canDeleteCategory(user?.role) && (
+                            <Button
+                              variant="destructive"
+                              size="icon-sm"
+                              onClick={() => handleDelete(category.categoryId)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-2 py-4">
+                  <div className="text-sm text-muted-foreground">
+                    Hiển thị{" "}
+                    <span className="font-medium">
+                      {(currentPage - 1) * itemsPerPage + 1}
+                    </span>{" "}
+                    đến{" "}
+                    <span className="font-medium">
+                      {Math.min(currentPage * itemsPerPage, filteredCategories.length)}
+                    </span>{" "}
+                    trong tổng số{" "}
+                    <span className="font-medium">{filteredCategories.length}</span> mục
+                  </div>
+
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+
+                      {/* First page */}
+                      {totalPages > 0 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(1)}
+                            isActive={currentPage === 1}
+                            className="cursor-pointer"
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
                       )}
 
-                      {permissions.canDeleteCategory(user?.role) && (
-                        <Button
-                          variant="destructive"
-                          size="icon-sm"
-                          onClick={() => handleDelete(category.categoryId)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      {/* Ellipsis before current page */}
+                      {currentPage > 3 && totalPages > 5 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+
+                      {/* Pages around current page */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((page) => {
+                          if (totalPages <= 5) return page > 1 && page < totalPages;
+                          if (page === 1 || page === totalPages) return false;
+                          return Math.abs(currentPage - page) <= 1;
+                        })
+                        .map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+
+                      {/* Ellipsis after current page */}
+                      {currentPage < totalPages - 2 && totalPages > 5 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Last page */}
+                      {totalPages > 1 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(totalPages)}
+                            isActive={currentPage === totalPages}
+                            className="cursor-pointer"
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 

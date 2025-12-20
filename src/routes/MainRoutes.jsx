@@ -12,6 +12,7 @@ import LoginPage from "@/features/auth/LoginPage";
 import RegisterPage from "@/features/auth/RegisterPage";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import CreateTicketPage from "@/features/imports/CreateTicketPage";
 
 const MainRoutes = {
   path: "/",
@@ -62,6 +63,14 @@ const MainRoutes = {
       element: (
         <ProtectedRoute permission="canViewExports">
           <ExportPage />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: "imports/create",
+      element: (
+        <ProtectedRoute permission="canViewImports">
+          <CreateTicketPage />
         </ProtectedRoute>
       ),
     },

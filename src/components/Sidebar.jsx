@@ -9,6 +9,7 @@ import {
   Building2,
   Tag,
   LogOut,
+  File
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import toast from "react-hot-toast";
+import logo from "@/assets/image.jpg";
 
 const menuItems = [
   {
@@ -66,6 +68,12 @@ const menuItems = [
     href: "/exports",
     roles: ["Staff", "Manager", "Admin"],
   },
+   {
+    icon: File,
+    label: "Tạo phiếu",
+    href: "imports/create",
+    roles: ["Staff", "Manager", "Admin"],
+  },
   {
     icon: Users,
     label: "Người dùng",
@@ -104,7 +112,17 @@ export default function Sidebar() {
     <div className="flex h-full flex-col bg-white border-r">
       {/* Logo */}
       <div className="flex h-16 items-center border-b px-6">
-        <Warehouse className="h-6 w-6 text-primary mr-2" />
+       <img
+  src={logo}
+  alt="Logo"
+  style={{
+    width: 48,
+    height: 48,
+    borderRadius: "50%",
+    objectFit: "cover"
+  }}
+/>
+
         <span className="text-xl font-bold text-primary">BeWarehouse</span>
       </div>
 
