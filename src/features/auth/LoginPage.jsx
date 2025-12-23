@@ -1,99 +1,108 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Warehouse, Lock, User } from "lucide-react";
-import toast from "react-hot-toast";
+"use client"
+
+import { useState } from "react"
+import { useNavigate, Link } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Warehouse, Lock, User, ArrowRight } from "lucide-react"
+import toast from "react-hot-toast"
 
 export default function LoginPage() {
-  const [loginIdentifier, setLoginIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const [loginIdentifier, setLoginIdentifier] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!loginIdentifier || !password) {
-      toast.error("Vui lòng nhập đầy đủ thông tin");
-      return;
+      toast.error("Vui lòng nhập đầy đủ thông tin")
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
     try {
-      await login(loginIdentifier, password);
-      toast.success("Đăng nhập thành công!");
-      navigate("/");
+      await login(loginIdentifier, password)
+      toast.success("Đăng nhập thành công!")
+      navigate("/")
     } catch (error) {
-      toast.error(error.response?.data?.message || "Đăng nhập thất bại");
+      toast.error(error.response?.data?.message || "Đăng nhập thất bại")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary rounded-full">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <div className="flex justify-center mb-6">
+            <div className="p-3.5 bg-blue-600 rounded-lg shadow-lg">
               <Warehouse className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Đăng nhập</CardTitle>
-          <CardDescription>Hệ thống quản lý kho BeWarehouseHub</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tên đăng nhập hoặc Email</label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Nhập username hoặc email"
-                  value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Đăng nhập</h1>
+          <p className="text-slate-600 text-sm">Truy cập hệ thống quản lý kho BeWarehouseHub</p>
+        </div>
+
+        <Card className="border-0 shadow-xl bg-white">
+          <CardContent className="pt-8">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2.5">
+                <label className="text-sm font-semibold text-slate-700">Tên đăng nhập hoặc Email</label>
+                <div className="relative group">
+                  <User className="absolute left-3.5 top-3.5 h-5 w-5 text-blue-500 transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="Nhập username hoặc email"
+                    value={loginIdentifier}
+                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Mật khẩu</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="password"
-                  placeholder="Nhập mật khẩu"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+              <div className="space-y-2.5">
+                <label className="text-sm font-semibold text-slate-700">Mật khẩu</label>
+                <div className="relative group">
+                  <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-blue-500 transition-colors" />
+                  <input
+                    type="password"
+                    placeholder="Nhập mật khẩu"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                  />
+                </div>
               </div>
-            </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-            </Button>
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                disabled={loading}
+              >
+                {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                {!loading && <ArrowRight className="h-4 w-4" />}
+              </Button>
 
-            <p className="text-center text-sm text-muted-foreground">
-              Chưa có tài khoản?{" "}
-              <Link to="/register" className="text-primary hover:underline">
-                Đăng ký ngay
-              </Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
+              <div className="pt-2 text-center border-t border-slate-100">
+                <p className="text-slate-600 text-sm">
+                  Chưa có tài khoản?{" "}
+                  <Link
+                    to="/register"
+                    className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
+                  >
+                    Đăng ký ngay
+                  </Link>
+                </p>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }

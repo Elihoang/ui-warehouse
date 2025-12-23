@@ -93,3 +93,15 @@ export const exportService = {
     });
   },
 };
+
+// Product Batch Service
+export { default as productBatchService } from './productBatchService';
+
+// Inventory Audit Service
+export { default as inventoryAuditService } from './inventoryAuditService';
+
+// Demand Forecast Service
+export { default as demandForecastService } from './demandForecastService';
+
+// Auto Reorder Service
+export { default as autoReorderService } from './autoReorderService';
