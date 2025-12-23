@@ -9,7 +9,11 @@ import {
   Building2,
   Tag,
   LogOut,
-  File
+  File,
+  Boxes,
+  ClipboardCheck,
+  TrendingUp,
+  Settings,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,6 +77,30 @@ const menuItems = [
     label: "Tạo phiếu",
     href: "imports/create",
     roles: ["Staff", "Manager", "Admin"],
+  },
+  {
+    icon: Boxes,
+    label: "Lô hàng",
+    href: "/batches",
+    roles: ["Staff", "Manager", "Admin"],
+  },
+  {
+    icon: ClipboardCheck,
+    label: "Kiểm kê",
+    href: "/audits",
+    roles: ["Manager", "Admin"],
+  },
+  {
+    icon: TrendingUp,
+    label: "Dự báo",
+    href: "/forecasts",
+    roles: ["Manager", "Admin"],
+  },
+  {
+    icon: Settings,
+    label: "Tự động đặt hàng",
+    href: "/auto-reorder",
+    roles: ["Manager", "Admin"],
   },
   {
     icon: Users,

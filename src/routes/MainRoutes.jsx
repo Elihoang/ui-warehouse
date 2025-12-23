@@ -13,6 +13,10 @@ import RegisterPage from "@/features/auth/RegisterPage";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import CreateTicketPage from "@/features/imports/CreateTicketPage";
+import ProductBatchPage from "@/features/batches/ProductBatchPage";
+import InventoryAuditPage from "@/features/audits/InventoryAuditPage";
+import DemandForecastPage from "@/features/forecasts/DemandForecastPage";
+import AutoReorderPage from "@/features/reorder/AutoReorderPage";
 
 const MainRoutes = {
   path: "/",
@@ -73,6 +77,22 @@ const MainRoutes = {
           <CreateTicketPage />
         </ProtectedRoute>
       ),
+    },
+    {
+      path: "batches",
+      element: <ProductBatchPage />,
+    },
+    {
+      path: "audits",
+      element: <InventoryAuditPage />,
+    },
+    {
+      path: "forecasts",
+      element: <DemandForecastPage />,
+    },
+    {
+      path: "auto-reorder",
+      element: <AutoReorderPage />,
     },
   ],
 };
