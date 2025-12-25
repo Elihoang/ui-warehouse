@@ -182,17 +182,39 @@ export default function ImportPage() {
 
   const handleExportPdf = async (id) => {
     try {
-      const response = await importService.exportPdf(id);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
+      const token = localStorage.getItem('accessToken');
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5154/api';
+      const url = `${baseURL}/import/${id}/export-html`;
+      
+      // Open in new window with authorization
+      const link = document.createElement('a');
       link.href = url;
-      link.setAttribute("download", `PhieuNhap_${id}.pdf`);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      
+      // For authenticated requests, use fetch
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download');
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      link.href = blobUrl;
+      link.download = `PhieuNhap_${id}.pdf`;
       document.body.appendChild(link);
       link.click();
-      link.remove();
-      toast.success("Xuất PDF thành công");
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      
+      toast.success("Tải xuống PDF thành công");
     } catch (error) {
-      toast.error("Không thể xuất PDF");
+      toast.error("Không thể tải xuống PDF");
     }
   };
 
