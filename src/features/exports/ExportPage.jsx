@@ -37,6 +37,8 @@ export default function ExportPage() {
   const [formData, setFormData] = useState({
     warehouseId: "",
     userId: user?.userId || "",
+    customerName: "",
+    customerAddress: "",
     details: [{ productId: "", quantity: 0 }],
   });
 
@@ -174,17 +176,34 @@ export default function ExportPage() {
 
   const handleExportPdf = async (id) => {
     try {
-      const response = await exportService.exportPdf(id);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `PhieuXuat_${id}.pdf`);
+      const token = localStorage.getItem('accessToken');
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5154/api';
+      const url = `${baseURL}/export/${id}/export-html`;
+      
+      // For authenticated requests, use fetch
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download');
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `PhieuXuat_${id}.pdf`;
       document.body.appendChild(link);
       link.click();
-      link.remove();
-      toast.success("Xuất PDF thành công");
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      
+      toast.success("Tải xuống PDF thành công");
     } catch (error) {
-      toast.error("Không thể xuất PDF");
+      toast.error("Không thể tải xuống PDF");
     }
   };
 
@@ -193,6 +212,8 @@ export default function ExportPage() {
     setFormData({
       warehouseId: "",
       userId: user?.userId || "",
+      customerName: "",
+      customerAddress: "",
       details: [{ productId: "", quantity: 0 }],
     });
   };
@@ -334,6 +355,32 @@ export default function ExportPage() {
                 <div className="space-y-2">
                   <Label>Người tạo</Label>
                   <Input value={user?.userName || ""} disabled />
+                </div>
+              </div>
+
+              {/* Customer Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerName">Tên khách hàng</Label>
+                  <Input
+                    id="customerName"
+                    placeholder="VD: Công ty ABC..."
+                    value={formData.customerName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, customerName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customerAddress">Địa chỉ khách hàng</Label>
+                  <Input
+                    id="customerAddress"
+                    placeholder="VD: 123 Đường XYZ, Quận 1, TP.HCM"
+                    value={formData.customerAddress}
+                    onChange={(e) =>
+                      setFormData({ ...formData, customerAddress: e.target.value })
+                    }
+                  />
                 </div>
               </div>
 

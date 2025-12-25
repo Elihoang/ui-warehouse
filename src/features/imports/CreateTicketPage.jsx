@@ -45,6 +45,11 @@ export default function CreateTicketPage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
+  const [batchNumber, setBatchNumber] = useState("");
+  const [manufacturingDate, setManufacturingDate] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
   const [transactionList, setTransactionList] = useState([]);
 
   useEffect(() => {
@@ -90,6 +95,12 @@ export default function CreateTicketPage() {
     setSelectedProduct(product);
     setSearchQuery("");
     setFilteredProducts([]);
+    // Auto-generate batch number suggestion
+    if (mode === "import") {
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const random = Math.floor(1000 + Math.random() * 9000);
+      setBatchNumber(`LOT${today}${random}`);
+    }
   };
 
   const handleAddToList = () => {
@@ -105,6 +116,30 @@ export default function CreateTicketPage() {
       toast.error("Vui lòng nhập giá nhập hợp lệ");
       return;
     }
+    // Validate batch information only if any field is filled
+    if (mode === "import") {
+      const hasBatchInfo = batchNumber.trim() || manufacturingDate || expiryDate;
+      
+      if (hasBatchInfo) {
+        // If user started filling batch info, validate all required batch fields
+        if (!batchNumber.trim()) {
+          toast.error("Vui lòng nhập số lô");
+          return;
+        }
+        if (!manufacturingDate) {
+          toast.error("Vui lòng chọn ngày sản xuất");
+          return;
+        }
+        if (!expiryDate) {
+          toast.error("Vui lòng chọn ngày hết hạn");
+          return;
+        }
+        if (new Date(expiryDate) <= new Date(manufacturingDate)) {
+          toast.error("Ngày hết hạn phải sau ngày sản xuất");
+          return;
+        }
+      }
+    }
 
     const newItem = {
       id: Date.now(),
@@ -116,10 +151,20 @@ export default function CreateTicketPage() {
       price: mode === "import" ? parseFloat(price) : 0,
     };
 
+    // Only include batch information if provided
+    if (mode === "import" && batchNumber.trim() && manufacturingDate && expiryDate) {
+      newItem.batchNumber = batchNumber.trim();
+      newItem.manufacturingDate = manufacturingDate;
+      newItem.expiryDate = expiryDate;
+    }
+
     setTransactionList([...transactionList, newItem]);
     setSelectedProduct(null);
     setQuantity("");
     setPrice("");
+    setBatchNumber("");
+    setManufacturingDate("");
+    setExpiryDate("");
     toast.success("Đã thêm sản phẩm vào danh sách");
   };
 
@@ -157,20 +202,34 @@ export default function CreateTicketPage() {
           warehouseId: selectedWarehouse,
           userId: user.userId,
           importDate: new Date().toISOString(),
-          details: transactionList.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          })),
+          details: transactionList.map((item) => {
+            const detail = {
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+            };
+            
+            // Only include batch information if it exists
+            if (item.batchNumber && item.manufacturingDate && item.expiryDate) {
+              detail.batchNumber = item.batchNumber;
+              detail.manufacturingDate = new Date(item.manufacturingDate).toISOString();
+              detail.expiryDate = new Date(item.expiryDate).toISOString();
+            }
+            
+            return detail;
+          }),
         };
         await importService.create(importData);
         toast.success("Tạo phiếu nhập kho thành công");
+
       } else {
         // Export format
         const exportData = {
           warehouseId: selectedWarehouse,
           userId: user.userId,
           exportDate: new Date().toISOString(),
+          customerName: customerName.trim() || null,
+          customerAddress: customerAddress.trim() || null,
           details: transactionList.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
@@ -185,6 +244,11 @@ export default function CreateTicketPage() {
       setSelectedProduct(null);
       setQuantity("");
       setPrice("");
+      setBatchNumber("");
+      setManufacturingDate("");
+      setExpiryDate("");
+      setCustomerName("");
+      setCustomerAddress("");
     } catch (error) {
       toast.error(error.response?.data?.message || "Có lỗi xảy ra");
       console.error(error);
@@ -285,6 +349,34 @@ export default function CreateTicketPage() {
                   ))}
                 </select>
               </div>
+
+              {/* Customer Information - Only for Export */}
+              {mode === "export" && (
+                <div className="space-y-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-blue-600" />
+                    <Label className="font-semibold text-blue-900 dark:text-blue-100">Thông tin khách hàng (không bắt buộc)</Label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Tên khách hàng</Label>
+                    <Input
+                      placeholder="VD: Công ty ABC..."
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Địa chỉ khách hàng</Label>
+                    <Input
+                      placeholder="VD: 123 Đường XYZ, Quận 1, TP.HCM"
+                      value={customerAddress}
+                      onChange={(e) => setCustomerAddress(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Category Filter */}
               <div className="space-y-2">
@@ -392,6 +484,46 @@ export default function CreateTicketPage() {
                 )}
               </div>
 
+              {/* Batch Information - Only for Import */}
+              {mode === "import" && (
+                <div className="space-y-4 p-4 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-amber-600" />
+                    <Label className="font-semibold text-amber-900 dark:text-amber-100">Thông tin lô hàng</Label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Số lô (không bắt buộc)</Label>
+                    <Input
+                      placeholder="VD: LOT202412240001 - Để trống nếu nhập sỉ"
+                      value={batchNumber}
+                      onChange={(e) => setBatchNumber(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Ngày sản xuất</Label>
+                      <Input
+                        type="date"
+                        value={manufacturingDate}
+                        onChange={(e) => setManufacturingDate(e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Ngày hết hạn</Label>
+                      <Input
+                        type="date"
+                        value={expiryDate}
+                        onChange={(e) => setExpiryDate(e.target.value)}
+                        min={manufacturingDate || new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Add Button */}
               <Button
                 className="w-full gap-2"
@@ -442,14 +574,17 @@ export default function CreateTicketPage() {
                   <div className="overflow-x-auto flex-1">
                     <table className="w-full">
                       <thead className="bg-muted/50 text-xs uppercase font-semibold">
-                       <tr>
-    <th className="px-4 py-3 text-left w-[45%]">Sản phẩm</th>
-    <th className="px-4 py-3 text-left w-[15%]">Số lượng</th>
-    {mode === "import" && (
-      <th className="px-4 py-3 text-left w-[20%]">Giá nhập</th>
-    )}
-    <th className="px-4 py-3 text-right w-[15%]">Thao tác</th>
-  </tr>
+                        <tr>
+                          <th className="px-4 py-3 text-left w-[35%]">Sản phẩm</th>
+                          <th className="px-4 py-3 text-left w-[10%]">Số lượng</th>
+                          {mode === "import" && (
+                            <>
+                              <th className="px-4 py-3 text-left w-[15%]">Giá nhập</th>
+                              <th className="px-4 py-3 text-left w-[25%]">Thông tin lô</th>
+                            </>
+                          )}
+                          <th className="px-4 py-3 text-right w-[15%]">Thao tác</th>
+                        </tr>
                       </thead>
                       <tbody className="divide-y text-sm">
                         {transactionList.map((item) => (
@@ -473,17 +608,38 @@ export default function CreateTicketPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3 w-[15%]">
+                            <td className="px-4 py-3">
                               <span className="font-bold text-base">
                                 {item.quantity} {item.unit}
                               </span>
                             </td>
                             {mode === "import" && (
-                              <td className="px-4 py-3 w-[15%]">
-                                <span className="font-semibold">
-                                  {formatCurrency(item.price)}
-                                </span>
-                              </td>
+                              <>
+                                <td className="px-4 py-3">
+                                  <span className="font-semibold">
+                                    {formatCurrency(item.price)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {item.batchNumber ? (
+                                    <div className="space-y-1">
+                                      <p className="text-xs font-mono font-semibold text-amber-700 dark:text-amber-400">
+                                        {item.batchNumber}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        NSX: {new Date(item.manufacturingDate).toLocaleDateString('vi-VN')}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        HSD: {new Date(item.expiryDate).toLocaleDateString('vi-VN')}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground italic">
+                                      Không có thông tin lô
+                                    </span>
+                                  )}
+                                </td>
+                              </>
                             )}
                             <td className="px-4 py-3 text-right">
                               <Button
