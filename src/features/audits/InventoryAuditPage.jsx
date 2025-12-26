@@ -28,6 +28,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Trash2,
+  Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -131,6 +132,28 @@ export default function InventoryAuditPage() {
       fetchAudits();
     } catch (error) {
       toast.error("Không thể xóa phiếu kiểm kê");
+    }
+  };
+
+  const handleDownloadPDF = async (auditId, auditCode) => {
+    try {
+      const response = await inventoryAuditService.exportPDF(auditId);
+      
+      // Tạo blob URL và tải file
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `PhieuKiemKe_${auditCode}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Đã tải xuống PDF thành công");
+    } catch (error) {
+      toast.error("Không thể tải xuống PDF");
+      console.error("PDF download error:", error);
     }
   };
 
@@ -364,13 +387,21 @@ export default function InventoryAuditPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
+                          <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleViewDetails(audit)}
                             >
                               Chi tiết
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownloadPDF(audit.auditId, audit.auditCode)}
+                              title="Tải PDF"
+                            >
+                              <Download className="h-4 w-4" />
                             </Button>
                             {audit.status === "InProgress" && (
                               <>
@@ -543,11 +574,18 @@ export default function InventoryAuditPage() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={
-                            detail.varianceStatus === "Match" ? "default" :
-                            detail.varianceStatus === "Excess" ? "default" :
-                            "destructive"
-                          }>
+                          <Badge 
+                            variant={
+                              detail.varianceStatus === "Match" ? "outline" :
+                              detail.varianceStatus === "Excess" ? "default" :
+                              "destructive"
+                            }
+                            className={
+                              detail.varianceStatus === "Match" ? "bg-green-100 text-green-700 border-green-300" :
+                              detail.varianceStatus === "Excess" ? "bg-blue-100 text-blue-700" :
+                              ""
+                            }
+                          >
                             {detail.varianceStatus === "Match" ? "Khớp" :
                              detail.varianceStatus === "Excess" ? "Thừa" : "Thiếu"}
                           </Badge>

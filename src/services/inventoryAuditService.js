@@ -35,6 +35,11 @@ const inventoryAuditService = {
 
   // Cancel audit
   cancel: (id) => api.post(`/InventoryAudit/${id}/cancel`),
+
+  // Export PDF
+  exportPDF: (id) => api.get(`/InventoryAudit/${id}/export-html`, {
+    responseType: 'blob', // Quan trọng: để nhận binary data
+  }),
 };
 
 export default inventoryAuditService;
